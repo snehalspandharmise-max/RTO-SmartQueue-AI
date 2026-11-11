@@ -1,15 +1,14 @@
+
 import jwt from 'jsonwebtoken';
-import { inMemoryDB, supabase, isSupabaseConfigured } from '../config/db.js';
+import { supabase, isSupabaseConfigured } from '../config/db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'rto-smartqueue-academic-jwt-secret-key-35619';
+const JWT_SECRET = process.env.JWT_SECRET;
 
-/**
- * Extract and verify authentication token
- */
 export async function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.startsWith('Bearer ') 
-    ? authHeader.substring(7).trim() 
+  const authHeader = req.headers.authorization;
+
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.substring(7).trim()
     : null;
 
   if (!token) {
@@ -17,80 +16,106 @@ export async function authenticateToken(req, res, next) {
     return next();
   }
 
-  // 1. Check for Academic Viva / Demo Convenience Tokens
-  if (token === 'demo-admin-token') {
-    const adminUser = inMemoryDB.findOne('profiles', p => p.role === 'admin');
-    req.user = adminUser || {
-      id: '11111111-1111-1111-1111-111111111111',
-      email: 'admin@smartqueue.demo',
-      role: 'admin',
-      full_name: 'Demonstration Administrator'
-    };
-    return next();
-  }
-
-  if (token === 'demo-citizen-token') {
-    const citizenUser = inMemoryDB.findOne('profiles', p => p.email === 'citizen@smartqueue.demo');
-    req.user = citizenUser || {
-      id: '22222222-2222-2222-2222-222222222222',
-      email: 'citizen@smartqueue.demo',
-      role: 'citizen',
-      full_name: 'Aarav Sharma (Demo Citizen)'
-    };
-    return next();
-  }
-
-  // 2. Try Supabase Auth verification if configured
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      if (user && !error) {
-        // Look up profile to check role
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        req.user = {
-          id: user.id,
-          email: user.email,
-          role: profile?.role || 'citizen',
-          full_name: profile?.full_name || user.user_metadata?.full_name || 'Citizen'
-        };
-        return next();
+  if (!JWT_SECRET) {
+    return res.status(503).json({
+      error: {
+        code: 'AUTH_CONFIGURATION_ERROR',
+        message: 'Authentication is not properly configured.'
       }
-    } catch (sbErr) {
-      // Continue to local JWT fallback
-    }
+    });
   }
 
-  // 3. Fallback standard local JWT verification
+  if (!isSupabaseConfigured || !supabase) {
+    return res.status(503).json({
+      error: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: 'Authentication database is unavailable.'
+      }
+    });
+  }
+
   try {
+    // 1. Verify the backend API token.
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Fetch profile from database to ensure up-to-date role
-    const profile = inMemoryDB.findById('profiles', decoded.id) || decoded;
+
+    if (!decoded.id) {
+      return res.status(401).json({
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Authentication token is invalid.'
+        }
+      });
+    }
+
+    // 2. Retrieve the real profile from Supabase.
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, phone, role')
+      .eq('id', decoded.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Authentication profile lookup failed:', error.message);
+
+      return res.status(503).json({
+        error: {
+          code: 'PROFILE_LOOKUP_FAILED',
+          message: 'Unable to verify your user profile. Please try again.'
+        }
+      });
+    }
+
+    // 3. Never silently create or assume a citizen profile.
+    if (!profile) {
+      return res.status(403).json({
+        error: {
+          code: 'PROFILE_NOT_FOUND',
+          message: 'Your user profile does not exist in the database.'
+        }
+      });
+    }
+
+    // 4. Attach verified database profile to request.
     req.user = {
       id: profile.id,
       email: profile.email,
-      role: profile.role,
-      full_name: profile.full_name
+      full_name: profile.full_name,
+      phone: profile.phone,
+      role: profile.role
     };
+
     return next();
-  } catch (jwtErr) {
-    req.user = null;
-    return res.status(401).json({
+
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: {
+          code: 'TOKEN_EXPIRED',
+          message: 'Your session has expired. Please log in again.'
+        }
+      });
+    }
+
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Authentication token is invalid.'
+        }
+      });
+    }
+
+    console.error('Authentication error:', err.message);
+
+    return res.status(500).json({
       error: {
-        code: 'INVALID_TOKEN',
-        message: 'Authentication token is invalid or has expired.'
+        code: 'AUTHENTICATION_ERROR',
+        message: 'Unable to authenticate this request.'
       }
     });
   }
 }
 
-/**
- * Strict middleware requiring an authenticated user
- */
 export function requireAuth(req, res, next) {
   if (!req.user) {
     return res.status(401).json({
@@ -100,13 +125,10 @@ export function requireAuth(req, res, next) {
       }
     });
   }
-  next();
+
+  return next();
 }
 
-/**
- * Strict middleware enforcing administrator role
- * Rejects citizens with 403 Forbidden
- */
 export function requireAdmin(req, res, next) {
   if (!req.user) {
     return res.status(401).json({
@@ -126,5 +148,5 @@ export function requireAdmin(req, res, next) {
     });
   }
 
-  next();
+  return next();
 }

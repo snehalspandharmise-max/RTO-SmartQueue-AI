@@ -22,6 +22,26 @@ describe('RTO SmartQueue AI — Backend Test Suite', () => {
     expect(res.body.academicProject).toBe(true);
   });
 
+  it('GET /api/offices returns verified Maharashtra RTO catalogue with search and region filtering', async () => {
+    const res = await request(app).get('/api/offices');
+    expect(res.status).toBe(200);
+    expect(res.body.offices).toBeInstanceOf(Array);
+    expect(res.body.offices.length).toBeGreaterThanOrEqual(10);
+    expect(res.body.regions).toBeInstanceOf(Array);
+    expect(res.body.disclaimer).toContain('Maharashtra Motor Vehicle Department');
+
+    // Test search filter by RTO code
+    const searchRes = await request(app).get('/api/offices?search=MH-12');
+    expect(searchRes.status).toBe(200);
+    expect(searchRes.body.offices.some(o => o.office_code === 'MH-12')).toBe(true);
+    expect(searchRes.body.offices.every(o => o.office_code === 'MH-12' || o.city.includes('Pune'))).toBe(true);
+
+    // Test region filter
+    const regionRes = await request(app).get('/api/offices?region=' + encodeURIComponent('Mumbai Metropolitan Region (MMR)'));
+    expect(regionRes.status).toBe(200);
+    expect(regionRes.body.offices.every(o => o.region === 'Mumbai Metropolitan Region (MMR)')).toBe(true);
+  });
+
   // 2. Authentication & Citizen Registration
   it('POST /api/auth/register should create a citizen account with role strictly locked to citizen', async () => {
     const res = await request(app)

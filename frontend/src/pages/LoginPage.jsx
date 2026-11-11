@@ -107,10 +107,10 @@ export function LoginPage() {
           </button>
         </form>
 
-        {/* Demo Fast-Login Box for Viva Examiners */}
+        {/* Quick Demo Access */}
         <div style={{ marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.65rem', textAlign: 'center' }}>
-            External Viva Quick Accounts
+            Quick Demo Access
           </span>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
             <button

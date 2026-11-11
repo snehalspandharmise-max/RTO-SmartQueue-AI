@@ -1,31 +1,37 @@
+
 import { AppointmentService } from '../services/appointmentService.js';
 import { QueueService } from '../services/queueService.js';
 
 export class AppointmentController {
-  static getMyAppointments(req, res, next) {
+  static async getMyAppointments(req, res, next) {
     try {
-      const appointments = AppointmentService.getUserAppointments(req.user.id);
+      const appointments = await AppointmentService.getUserAppointments(req.user.id);
       res.json({ appointments });
     } catch (err) {
       next(err);
     }
   }
 
-  static getAppointmentById(req, res, next) {
+  static async getAppointmentById(req, res, next) {
     try {
-      const appointment = AppointmentService.getAppointmentById(req.params.id, req.user);
+      const appointment = await AppointmentService.getAppointmentById(
+        req.params.id,
+        req.user
+      );
+
       if (!appointment) {
         return res.status(404).json({
           error: { code: 'NOT_FOUND', message: 'Appointment not found' }
         });
       }
+
       res.json({ appointment });
     } catch (err) {
       next(err);
     }
   }
 
-  static bookAppointment(req, res, next) {
+  static async bookAppointment(req, res, next) {
     try {
       const { office_id, service_id, slot_id, notes } = req.body;
 
@@ -38,7 +44,7 @@ export class AppointmentController {
         });
       }
 
-      const result = AppointmentService.bookAppointment({
+      const result = await AppointmentService.bookAppointment({
         userId: req.user.id,
         officeId: office_id,
         serviceId: service_id,
@@ -55,9 +61,10 @@ export class AppointmentController {
     }
   }
 
-  static checkIn(req, res, next) {
+  static async checkIn(req, res, next) {
     try {
-      const result = QueueService.checkIn(req.params.id, req.user);
+      const result = await QueueService.checkIn(req.params.id, req.user);
+
       res.json({
         message: 'Checked in successfully. You have joined the active queue.',
         ...result
@@ -67,15 +74,25 @@ export class AppointmentController {
     }
   }
 
-  static reschedule(req, res, next) {
+  static async reschedule(req, res, next) {
     try {
       const { new_slot_id } = req.body;
+
       if (!new_slot_id) {
         return res.status(400).json({
-          error: { code: 'VALIDATION_ERROR', message: 'new_slot_id is required' }
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'new_slot_id is required'
+          }
         });
       }
-      const updated = AppointmentService.rescheduleAppointment(req.params.id, req.user, new_slot_id);
+
+      const updated = await AppointmentService.rescheduleAppointment(
+        req.params.id,
+        req.user,
+        new_slot_id
+      );
+
       res.json({
         message: 'Appointment rescheduled successfully',
         appointment: updated
@@ -85,10 +102,16 @@ export class AppointmentController {
     }
   }
 
-  static cancel(req, res, next) {
+  static async cancel(req, res, next) {
     try {
       const { reason } = req.body;
-      const updated = AppointmentService.cancelAppointment(req.params.id, req.user, reason);
+
+      const updated = await AppointmentService.cancelAppointment(
+        req.params.id,
+        req.user,
+        reason
+      );
+
       res.json({
         message: 'Appointment cancelled successfully',
         appointment: updated

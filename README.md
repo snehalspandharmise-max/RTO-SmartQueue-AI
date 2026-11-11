@@ -2,8 +2,8 @@
 
 [![Academic Project](https://img.shields.io/badge/Academic-Third--Year%20Computer%20Engineering-blue)](https://github.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-14%2F14%20Passed-brightgreen)](docs/testing-report.md)
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-1%2F1%20Passed-brightgreen)](docs/testing-report.md)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-15%2F15%20Passed-brightgreen)](docs/testing-report.md)
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-4%2F4%20Passed-brightgreen)](docs/testing-report.md)
 
 > [!IMPORTANT]
 > **Academic Demonstration Disclaimer**:
@@ -252,24 +252,86 @@ Dynamic uncertainty interval $[L, U] = \hat{W} \cdot (1 \pm \delta)$ where $\del
 
 ## 10. Automated Tests & Actual Results
 
-Run all test suites locally:
+Run all test suites locally using Windows PowerShell:
 
-```bash
-# Run backend API tests (14 tests)
-npm --prefix backend test
+```powershell
+# Run backend API tests (15 tests)
+npm.cmd --prefix backend test
 
-# Run frontend component tests
-npm --prefix frontend test
+# Run frontend component tests (4 tests)
+npm.cmd --prefix frontend test
+
+# Run frontend production build
+npm.cmd --prefix frontend run build
 ```
 
-### Actual Results
-- **Backend**: **14 out of 14 passed** (Supertest HTTP tests covering RBAC, atomic capacity locking, queue lifecycle, and mathematical calculations).
-- **Frontend**: **1 out of 1 passed** (React Testing Library rendering, navigation, and disclaimer verification).
-- **Production Build**: **Clean build** with zero syntax or bundling errors.
+### Actual Verified Results
+- **Backend**: **15 out of 15 passed** (Supertest integration tests covering RBAC isolation, atomic capacity locks, lifecycle state progression, `/api/offices` directory filtering, and prediction calculations).
+- **Frontend**: **4 out of 4 passed** (React Testing Library verifying landing page disclaimer, unauthenticated queue tracker handling, booking wizard initialization, and Maharashtra office directory rendering).
+- **Production Bundle**: **Clean production build** via Vite (`dist/` generated with zero errors).
 
 ---
 
-## 11. External Viva Demonstration Guide
+## 11. Complete Deployment & Production Guide
+
+Follow these steps to deploy RTO SmartQueue AI to cloud infrastructure.
+
+### 11.1 Step 1: Database Setup (Supabase PostgreSQL)
+1. Go to [supabase.com](https://supabase.com) and create a new project.
+2. Under **Project Settings -> API**, copy:
+   - Project URL (`https://xyzcompany.supabase.co`)
+   - `anon` `public` key
+   - `service_role` `secret` key (keep strictly secret, never put in frontend!)
+3. In the Supabase **SQL Editor**, run the migration scripts in order:
+   - `supabase/migrations/001_initial_schema.sql` (creates 13 core tables, indexes, constraints)
+   - `supabase/migrations/002_rls_policies.sql` (enforces strict tenant isolation and admin rules)
+   - `supabase/seed.sql` (seeds official Maharashtra RTO offices, demo accounts, and services)
+
+### 11.2 Step 2: Backend Deployment (Persistent Node.js Hosting)
+Deploy the `backend` folder to a persistent Node.js hosting platform (e.g., [Render.com](https://render.com), [Railway.app](https://railway.app), or Fly.io):
+1. **Root Directory**: `backend`
+2. **Build Command**: `npm install`
+3. **Start Command**: `node src/server.js`
+4. **Environment Variables**:
+   ```env
+   NODE_ENV=production
+   PORT=5000
+   FRONTEND_URL=https://your-frontend.vercel.app
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_ANON_KEY=your-supabase-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+   JWT_SECRET=your-strong-production-jwt-secret-string
+   ADMIN_BOOTSTRAP_SECRET=your-strong-admin-bootstrap-secret
+   ```
+5. Once deployed, verify your backend health endpoint in your browser:  
+   `https://your-backend.onrender.com/api/health`
+
+### 11.3 Step 3: Frontend Deployment (Vercel)
+The project includes `frontend/vercel.json` configured with Vite build output and SPA client-side route rewrites.
+1. Connect your GitHub repository to [Vercel](https://vercel.com).
+2. Set **Root Directory** to: `frontend`
+3. Framework Preset: **Vite**
+4. Build Command: `vite build`
+5. Output Directory: `dist`
+6. **Environment Variables**:
+   ```env
+   VITE_API_BASE_URL=https://your-backend.onrender.com/api
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   ```
+7. Click **Deploy**. Vercel will build and assign your production domain (`https://rto-smartqueue.vercel.app`).
+
+### 11.4 Step 4: Verification of Live System
+1. Open your live Vercel URL.
+2. Verify the **RTO Directory** (`/offices`) loads all verified Maharashtra locations.
+3. Test citizen login or demo login (`citizen@smartqueue.demo`).
+4. Test the 8-step booking wizard and observe slot recommendation generation.
+5. Confirm token issue and live queue tracking.
+6. Log in as administrator (`admin@smartqueue.demo`) to verify dashboard metrics and counter dispatch.
+
+---
+
+## 12. External Viva Demonstration Guide
 
 When presenting this project to your external examiner or college professor, follow this 5-minute walkthrough:
 

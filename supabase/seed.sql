@@ -13,11 +13,34 @@ VALUES
     ('55555555-5555-5555-5555-555555555555', 'ananya.deshmukh@example.com', 'Ananya Deshmukh', '+91 98765 45678', 'citizen')
 ON CONFLICT (id) DO UPDATE SET full_name = EXCLUDED.full_name;
 
--- 2. Demonstration RTO Offices
+-- 2. Verified Maharashtra Regional Transport Offices (Reference: transport.maharashtra.gov.in)
 INSERT INTO public.rto_offices (id, office_code, office_name, address, city, state, timezone, operating_hours_start, operating_hours_end, is_active)
 VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'MH-01', 'Mumbai Central Demonstration RTO', 'Tardeo Main Road, Mumbai Central', 'Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
-    ('a0000000-0000-0000-0000-000000000002', 'MH-12', 'Pune Regional Demonstration RTO', 'Sangam Bridge, Near Pune Railway Station', 'Pune', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true)
+    ('a0000000-0000-0000-0000-000000000001', 'MH-01', 'Mumbai Central Regional Transport Office', 'Old Bodyguard Lane, Tulsiwadi, Tardeo', 'Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000002', 'MH-12', 'Pune Regional Transport Office', '38, Dr. Ambedkar Road, Sangam Bridge, Pune', 'Pune', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000003', 'MH-02', 'Mumbai West Regional Transport Office', 'D/111, Ambivali Village, Versova Road, Andheri (West)', 'Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000004', 'MH-03', 'Mumbai East Regional Transport Office', 'BPT Colony, Eastern Freeway Road, Wadala (East)', 'Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000005', 'MH-04', 'Thane Regional Transport Office', 'Near Central Jail, Court Naka, Thane (West)', 'Thane', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000006', 'MH-05', 'Kalyan Deputy Regional Transport Office', 'Near Sahajanand Chowk, Agra Road, Rambaug, Kalyan', 'Kalyan', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000007', 'MH-43', 'Navi Mumbai Regional Transport Office', 'Sector 19B, APMC Market Road, Vashi, Navi Mumbai', 'Navi Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000008', 'MH-46', 'Panvel Regional Transport Office', 'NH-4, Palaspa Phata, Near Panvel Town, Raigad', 'Panvel', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000009', 'MH-47', 'Borivali Deputy Regional Transport Office', 'Kandarpada, Dahisar Link Road, Borivali (West)', 'Mumbai', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000010', 'MH-48', 'Vasai Deputy Regional Transport Office', 'Chinchoti-Kaman Road, Chandansar, Virar / Vasai', 'Vasai-Virar', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000011', 'MH-14', 'Pimpri-Chinchwad Deputy Regional Transport Office', 'Sector 6, Spine Road, Moshi Pradhikaran, PCMC', 'Pimpri-Chinchwad', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000012', 'MH-09', 'Kolhapur Regional Transport Office', 'Kasaba Bawada Main Road, Kolhapur', 'Kolhapur', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000013', 'MH-10', 'Sangli Deputy Regional Transport Office', 'Madhavnagar Road, Sangli', 'Sangli', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000014', 'MH-11', 'Satara Deputy Regional Transport Office', 'Camp Area, Near Circuit House, Satara', 'Satara', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000015', 'MH-13', 'Solapur Regional Transport Office', 'Near Old Pune Naka, Solapur', 'Solapur', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000016', 'MH-15', 'Nashik Regional Transport Office', 'Trimbak Road, Near ITI, Satpur, Nashik', 'Nashik', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000017', 'MH-16', 'Ahmednagar Deputy Regional Transport Office', 'MIDC Nagapur Road, Ahmednagar', 'Ahmednagar', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000018', 'MH-18', 'Dhule Regional Transport Office', 'Mumbai-Agra Highway, Mohadi, Dhule', 'Dhule', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000019', 'MH-19', 'Jalgaon Regional Transport Office', 'Adarsh Nagar, National Highway 6, Jalgaon', 'Jalgaon', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000020', 'MH-20', 'Chhatrapati Sambhajinagar Regional Transport Office', 'Railway Station Road, Near Goldie Cinema, Chhatrapati Sambhajinagar', 'Chhatrapati Sambhajinagar', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000021', 'MH-24', 'Latur Deputy Regional Transport Office', 'Babhalgaon Road, Latur', 'Latur', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000022', 'MH-26', 'Nanded Regional Transport Office', 'Maltekdi Road, VIP Road, Nanded', 'Nanded', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000023', 'MH-31', 'Nagpur City Regional Transport Office', 'Opposite Railway Station, Giripeth, Nagpur', 'Nagpur', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000024', 'MH-40', 'Nagpur Rural Deputy Regional Transport Office', 'Amravati Road, Wadi, Nagpur Rural', 'Nagpur', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true),
+    ('a0000000-0000-0000-0000-000000000025', 'MH-27', 'Amravati Regional Transport Office', 'Near Collector Office, Camp, Amravati', 'Amravati', 'Maharashtra', 'Asia/Kolkata', '09:00:00', '17:00:00', true)
 ON CONFLICT (office_code) DO NOTHING;
 
 -- 3. Configurable Services

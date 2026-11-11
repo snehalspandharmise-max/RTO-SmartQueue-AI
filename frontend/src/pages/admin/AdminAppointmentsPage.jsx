@@ -231,8 +231,8 @@ export function AdminAppointmentsPage() {
                             </button>
                           )}
 
-                          {/* Mark No Show */}
-                          {(appt.status === 'waiting' || appt.status === 'in_progress' || appt.status === 'booked') && (
+                          {/* Mark No Show — only valid from waiting or in_progress per server-side state machine */}
+                          {(appt.status === 'waiting' || appt.status === 'in_progress') && (
                             <button
                               onClick={() => handleUpdateStatus(appt.id, 'no_show')}
                               disabled={isUpdating}

@@ -10,7 +10,7 @@ export function AdminLayout() {
   const [resetNotice, setResetNotice] = useState(null);
 
   const handleReset = async () => {
-    if (!window.confirm('Reset demonstration database to initial seed state? This is useful for replaying your viva demonstration.')) {
+    if (!window.confirm('Reset demo database to initial seed state? This will reload all sample data.')) {
       return;
     }
     try {
@@ -40,7 +40,7 @@ export function AdminLayout() {
               RTO Operations Administration Console
             </span>
             <span className="badge badge-primary" style={{ fontSize: '0.68rem', backgroundColor: '#1e3a8a', color: '#93c5fd', border: '1px solid #3b82f6' }}>
-              Demonstration Mode
+              Admin Mode
             </span>
           </div>
 

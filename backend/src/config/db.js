@@ -1,28 +1,11 @@
 import dotenv from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'node:crypto';
+import { MAHARASHTRA_RTO_OFFICES } from '../data/maharashtraOffices.js';
+import { supabase, isSupabaseConfigured, getDatabaseStatus } from './supabaseClient.js';
 
 dotenv.config();
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-export const isSupabaseConfigured = Boolean(
-  SUPABASE_URL && 
-  SUPABASE_SERVICE_ROLE_KEY && 
-  SUPABASE_URL.startsWith('http') &&
-  !SUPABASE_URL.includes('your-project')
-);
-
-export let supabase = null;
-if (isSupabaseConfigured) {
-  try {
-    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    console.log('[Database] Connected to external Supabase PostgreSQL instance:', SUPABASE_URL);
-  } catch (err) {
-    console.warn('[Database] Failed to initialize Supabase client, falling back to built-in store:', err.message);
-  }
-}
+export { supabase, isSupabaseConfigured, getDatabaseStatus };
 
 // ====================================================================
 // Built-in High-Fidelity Relational Store
@@ -32,34 +15,10 @@ if (isSupabaseConfigured) {
 function getInitialState() {
   const today = new Date().toISOString().split('T')[0];
 
-  const offices = [
-    {
-      id: 'a0000000-0000-0000-0000-000000000001',
-      office_code: 'MH-01',
-      office_name: 'Mumbai Central Demonstration RTO',
-      address: 'Tardeo Main Road, Mumbai Central',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      timezone: 'Asia/Kolkata',
-      operating_hours_start: '09:00:00',
-      operating_hours_end: '17:00:00',
-      is_active: true,
-      created_at: new Date().toISOString()
-    },
-    {
-      id: 'a0000000-0000-0000-0000-000000000002',
-      office_code: 'MH-12',
-      office_name: 'Pune Regional Demonstration RTO',
-      address: 'Sangam Bridge, Near Pune Railway Station',
-      city: 'Pune',
-      state: 'Maharashtra',
-      timezone: 'Asia/Kolkata',
-      operating_hours_start: '09:00:00',
-      operating_hours_end: '17:00:00',
-      is_active: true,
-      created_at: new Date().toISOString()
-    }
-  ];
+  const offices = MAHARASHTRA_RTO_OFFICES.map(off => ({
+    ...off,
+    created_at: new Date().toISOString()
+  }));
 
   const services = [
     {
@@ -167,14 +126,22 @@ function getInitialState() {
     }
   ];
 
-  const office_services = services.map(s => ({
-    id: crypto.randomUUID(),
-    office_id: offices[0].id,
-    service_id: s.id,
-    custom_duration_minutes: s.estimated_duration_minutes,
-    is_active: true,
-    created_at: new Date().toISOString()
-  }));
+  const office_services = [];
+  offices.forEach(off => {
+    const supportedCodes = new Set(off.supported_service_codes || ['DL', 'LL', 'VR', 'TO', 'RC']);
+    services.forEach(s => {
+      if (supportedCodes.has(s.service_code)) {
+        office_services.push({
+          id: crypto.randomUUID(),
+          office_id: off.id,
+          service_id: s.id,
+          custom_duration_minutes: s.estimated_duration_minutes,
+          is_active: true,
+          created_at: new Date().toISOString()
+        });
+      }
+    });
+  });
 
   const counters = [
     {
@@ -224,6 +191,23 @@ function getInitialState() {
     }
   ];
 
+  // Initialize active counters for other offices with live queue integration
+  offices.slice(1).forEach((off, offIdx) => {
+    if (off.has_live_queue_integration) {
+      for (let cNum = 1; cNum <= 3; cNum++) {
+        counters.push({
+          id: `c0000000-0000-0000-000${offIdx + 1}-00000000000${cNum}`,
+          office_id: off.id,
+          counter_number: cNum,
+          counter_label: `Counter ${cNum} — General RTO Dispatch (${off.office_code})`,
+          status: 'active',
+          current_appointment_id: null,
+          created_at: new Date().toISOString()
+        });
+      }
+    }
+  });
+
   const counter_services = [
     // Counter 1: DL, LL
     { id: crypto.randomUUID(), counter_id: counters[0].id, service_id: services[0].id },
@@ -240,6 +224,17 @@ function getInitialState() {
     { id: crypto.randomUUID(), counter_id: counters[4].id, service_id: services[0].id },
     { id: crypto.randomUUID(), counter_id: counters[4].id, service_id: services[4].id }
   ];
+
+  // Map services to all additional counters
+  counters.slice(5).forEach(c => {
+    services.forEach(s => {
+      counter_services.push({
+        id: crypto.randomUUID(),
+        counter_id: c.id,
+        service_id: s.id
+      });
+    });
+  });
 
   const appointment_slots = [
     {

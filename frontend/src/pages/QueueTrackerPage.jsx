@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../features/auth/AuthContext';
 import { 
   Clock, 
   Users, 
@@ -11,12 +12,18 @@ import {
   Info, 
   ShieldCheck, 
   Activity, 
-  Sparkles 
+  Sparkles,
+  Wifi,
+  WifiOff,
+  QrCode
 } from 'lucide-react';
+import { subscribeToAppointment, isRealtimeAvailable } from '../services/supabaseClient';
+import { DigitalQueuePass } from '../components/DigitalQueuePass';
 
 export function QueueTrackerPage() {
   const [searchParams] = useSearchParams();
   const appointmentId = searchParams.get('id');
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const [queueData, setQueueData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +31,7 @@ export function QueueTrackerPage() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   const fetchTrackerData = useCallback(async (isSilent = false) => {
     try {
@@ -46,8 +54,11 @@ export function QueueTrackerPage() {
   }, [appointmentId]);
 
   useEffect(() => {
-    fetchTrackerData();
-  }, [fetchTrackerData]);
+    // Don't fetch until auth state is determined; avoids spurious 401 on unauthenticated load
+    if (!authLoading) {
+      fetchTrackerData();
+    }
+  }, [fetchTrackerData, authLoading]);
 
   // Controlled polling every 12 seconds if enabled
   useEffect(() => {
@@ -57,6 +68,17 @@ export function QueueTrackerPage() {
     }, 12000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchTrackerData]);
+
+  // Supabase Realtime subscription for instant token updates
+  useEffect(() => {
+    if (!queueData?.appointment?.id) return;
+    const sub = subscribeToAppointment(queueData.appointment.id, () => {
+      fetchTrackerData(true);
+    });
+    return () => {
+      if (sub?.unsubscribe) sub.unsubscribe();
+    };
+  }, [queueData?.appointment?.id, fetchTrackerData]);
 
   const handleSelfCheckIn = async () => {
     if (!queueData?.appointment?.id) return;
@@ -81,14 +103,25 @@ export function QueueTrackerPage() {
   }
 
   if (error) {
+    // If the error is a 401 / authentication-related, show a helpful login prompt
+    const isAuthError = error.toLowerCase().includes('authentication') || error.includes('401') || error.toLowerCase().includes('unauthorized');
     return (
       <div className="card state-box">
         <AlertCircle size={42} style={{ color: 'var(--danger)', margin: '0 auto 1rem' }} />
         <h2 style={{ fontSize: '1.25rem', color: 'var(--navy-900)', marginBottom: '0.5rem' }}>Unable to Track Queue</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{error}</p>
-        <button onClick={() => fetchTrackerData()} className="btn btn-primary">
-          <RefreshCw size={16} /> Try Again
-        </button>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+          {isAuthError ? 'You must be logged in to track your queue position.' : error}
+        </p>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {isAuthError ? (
+            <Link to="/login" className="btn btn-primary">Log In to Track Queue</Link>
+          ) : (
+            <button onClick={() => fetchTrackerData()} className="btn btn-primary">
+              <RefreshCw size={16} /> Try Again
+            </button>
+          )}
+          <Link to="/book" className="btn btn-secondary">Book an Appointment</Link>
+        </div>
       </div>
     );
   }
@@ -129,14 +162,23 @@ export function QueueTrackerPage() {
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {isRealtimeAvailable ? (
+            <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+              <Wifi size={12} /> Supabase Realtime Active
+            </span>
+          ) : (
+            <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+              <Activity size={12} /> Live Sync (12s Active)
+            </span>
+          )}
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.825rem', color: 'var(--navy-800)', cursor: 'pointer' }}>
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={(e) => setAutoRefresh(e.target.checked)}
             />
-            Auto-refresh (12s)
+            Auto-refresh
           </label>
           <button
             onClick={() => fetchTrackerData()}
@@ -166,6 +208,17 @@ export function QueueTrackerPage() {
 
         <div className="token-number">
           {appointment.queue_token}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+          <button
+            type="button"
+            onClick={() => setShowPass(true)}
+            className="btn btn-secondary btn-sm"
+            style={{ background: 'rgba(255,255,255,0.2)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.4)', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <QrCode size={15} /> View & Print Digital QR Pass
+          </button>
         </div>
 
         <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
@@ -264,11 +317,29 @@ export function QueueTrackerPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          <span>Last calculation timestamp: {new Date(prediction?.calculationTimestamp || Date.now()).toLocaleTimeString()}</span>
-          <span style={{ fontStyle: 'italic' }}>Confidential: No other citizens' personal data is exposed.</span>
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <span>Last calculation timestamp: {new Date(prediction?.calculationTimestamp || Date.now()).toLocaleTimeString()}</span>
+            <span style={{ fontStyle: 'italic' }}>Confidential: No other citizens' personal data is exposed.</span>
+          </div>
+          <p style={{ background: '#f1f5f9', padding: '0.5rem 0.75rem', borderRadius: '4px', color: '#475569', margin: 0 }}>
+            📌 <strong>Distinction:</strong> Wait durations are application-computed mathematical estimates based on current backlog and service baseline. Counter calls and dispatches represent verified live operational actions.
+          </p>
         </div>
       </div>
+
+      {showPass && (
+        <DigitalQueuePass
+          appointment={{
+            ...appointment,
+            token_number: appointment.queue_token,
+            office_name: appointment.office?.office_name,
+            service_name: appointment.service?.name,
+            counter_name: appointment.counter?.counter_label
+          }}
+          onClose={() => setShowPass(false)}
+        />
+      )}
     </div>
   );
 }
